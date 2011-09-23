@@ -50,7 +50,8 @@
     (list (case action
             ((install) `(h1 "Installation output for " ,egg))
             ((test) `(h1 "Test output for " ,egg)))
-          `(pre ,message)))
+          `(pre ,message))
+    title: (conc "Test output (" num ") for " egg))
    (make-pathname (list out-dir
                         (conc "log" num)
                         (symbol->string action))
@@ -99,7 +100,8 @@
                                 (diff-status-2 d)
                                 ""
                                 "")))))
-                   diffs)))))
+                   diffs))))
+      title: "Salmonella diff")
      (make-pathname out-dir "index.html"))))
 
 
