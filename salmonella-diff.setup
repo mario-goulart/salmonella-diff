@@ -1,0 +1,10 @@
+;;; salmonella-diff.setup -*- scheme -*-
+
+;; Compile the application
+(compile -S -O3 -d1 salmonella-diff.scm -o salmonella-diff)
+
+(define salmonella-diff-version "1")
+
+(install-program 'salmonella-diff
+                 '("salmonella-diff")
+                 `((version ,salmonella-diff-version)))
