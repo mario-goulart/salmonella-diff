@@ -58,15 +58,15 @@
                   (symbol->string egg)
                   "html")))
 
-(define (diff->html log-file-1 log-file-2 out-dir)
+(define (diff->html log-file-1 log-file-2 out-dir #!key label1 label2)
   (let ((diffs (salmonella-diff log-file-1 log-file-2)))
     (sxml-diff->html
      (page-template
       `((h1 "Salmonella diff")
         (h2 "Log files")
         (table
-         (tr (td 1) (td ,log-file-1))
-         (tr (td 2) (td ,log-file-2)))
+         (tr (td 1) (td ,(or label1 log-file-1)))
+         (tr (td 2) (td ,(or label2 log-file-2))))
         (h2 "Differences")
         ,(if (null? diffs)
              '(p "No differences")
@@ -183,7 +183,9 @@ EOF
 ;;; Command line parsing
 ;;;
 (let* ((args (command-line-arguments))
-       (out-dir (or (cmd-line-arg '--out-dir args) "salmonella-diff-html")))
+       (out-dir (or (cmd-line-arg '--out-dir args) "salmonella-diff-html"))
+       (label1 (cmd-line-arg '--label1 args))
+       (label2 (cmd-line-arg '--label2 args)))
 
   (when (or (member "--help" args)
             (member "-h" args)
@@ -210,4 +212,4 @@ EOF
 
     (let ((log1 (car logs))
           (log2 (cadr logs)))
-      (diff->html log1 log2 out-dir))))
+      (diff->html log1 log2 out-dir label1: label1 label2: label2))))
