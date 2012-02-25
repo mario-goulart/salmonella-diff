@@ -172,7 +172,12 @@
                                 (diff-status-2 d)
                                 ""
                                 "")))))
-                   diffs))))
+                   diffs)))
+        (h2 (@ (id "environment-information")) "Environments information")
+        (h3 (@ (id "env1")) "Environment 1")
+        (pre ,(salmonella-info log1))
+        (h3 (@ (id "env2")) "Environment 2")
+        (pre ,(salmonella-info log2)))
       title: "Salmonella diff")
      (make-pathname out-dir "index.html"))))
 
