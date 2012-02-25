@@ -249,7 +249,7 @@
   (let ((this (pathname-strip-directory (program-name))))
     (display #<#EOF
 #this [ -h | --help ]
-#this [ --out-dir=<dir> ] log1 log2
+#this [ --out-dir=<dir> ] [ --label1=<label1> ] [ --label2=<label2> ] log1 log2
 EOF
 )
     (newline)
