@@ -2,10 +2,8 @@
 
 (define-record diff action egg status-1 message-1 status-2 message-2)
 
-(define (salmonella-diff log-file-1 log-file-2)
-  (let* ((log1 (read-log-file log-file-1))
-         (log2 (read-log-file log-file-2))
-         (eggs1 (sort-eggs (log-eggs log1)))
+(define (salmonella-diff log1 log2)
+  (let* ((eggs1 (sort-eggs (log-eggs log1)))
          (eggs2 (sort-eggs (log-eggs log2)))
          (diffs '())
          (add-diff! (lambda (diff)
@@ -43,6 +41,7 @@
     diffs))
 
 
+
 ;;; Diff -> HTML
 (define (write-html egg action message num out-dir)
   (sxml-diff->html
@@ -58,8 +57,80 @@
                   (symbol->string egg)
                   "html")))
 
+
+(define (render-summary log1 log2)
+  (let ((blank '(literal "&nbsp;")))
+    `((h2 (@ (id "summary")) "Summary")
+      (table
+       (tr (th "Installation")
+           (th "Tests")
+           (th "Documentation")
+           (th "Run time")
+           (th "Total"))
+       (tr
+        ;; Installation
+        (td ,(zebra-table
+              '("" 1 2)
+              `(("Ok"
+                 ,(count-install-ok log1)
+                 ,(count-install-ok log2))
+                ("Failed"
+                 ,(count-install-fail log1)
+                 ,(count-install-fail log2))
+                (,blank ,blank ,blank))))
+
+        ;; Tests
+        (td ,(zebra-table
+              '("" 1 2)
+              `(("Ok"
+                 ,(count-test-ok log1)
+                 ,(count-test-ok log2))
+                ("Failed"
+                 ,(count-test-fail log1)
+                 ,(count-test-fail log2))
+                ("No test"
+                 ,(count-no-test log1)
+                 ,(count-no-test log2)))))
+
+        ;; Documentation
+        (td ,(zebra-table
+              '("" 1 2)
+              `(("Documented"
+                 ,(count-documented log1)
+                 ,(count-documented log2))
+                ("Undocumented"
+                 ,(count-undocumented log1)
+                 ,(count-undocumented log2))
+                (,blank ,blank ,blank))))
+
+        ;; Run time
+        (td ,(zebra-table
+              '(1 2)
+              `((,(prettify-time (inexact->exact (total-time log1)))
+                 ,(prettify-time (inexact->exact (total-time log2))))
+                (,blank ,blank)
+                (,blank ,blank))))
+
+
+        ;; Total
+        (td ,(zebra-table
+              '("" 1 2)
+              `(("Total number of eggs"
+                 ,(count-total-eggs log1 with-skipped?: #t)
+                 ,(count-total-eggs log2 with-skipped?: #t))
+                ("Not skipped"
+                 ,(count-total-eggs log1 with-skipped?: #f)
+                 ,(count-total-eggs log2 with-skipped?: #f))
+                ("Skipped"
+                 ,(length (log-skipped-eggs log1))
+                 ,(length (log-skipped-eggs log2))))))
+        )))))
+
+
 (define (diff->html log-file-1 log-file-2 out-dir #!key label1 label2)
-  (let ((diffs (salmonella-diff log-file-1 log-file-2)))
+  (let* ((log1 (read-log-file log-file-1))
+         (log2 (read-log-file log-file-2))
+         (diffs (salmonella-diff log1 log2)))
     (sxml-diff->html
      (page-template
       `((h1 "Salmonella diff")
@@ -67,7 +138,8 @@
         (table
          (tr (td 1) (td ,(or label1 log-file-1)))
          (tr (td 2) (td ,(or label2 log-file-2))))
-        (h2 "Differences")
+        ,(render-summary log1 log2)
+        (h2 "Differences detailed")
         ,(if (null? diffs)
              '(p "No differences")
              (zebra-table
