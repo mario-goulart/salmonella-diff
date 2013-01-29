@@ -2,12 +2,20 @@
 
 (define-record diff action egg status-1 message-1 status-2 message-2)
 
+;; status: new or missing
+(define-record new/missing-egg status egg install-status install-message test-status test-message)
+
 (define (salmonella-diff log1 log2)
+  ;; Returns a list (<diffs> <new/missing eggs>
   (let* ((eggs1 (sort-eggs (log-eggs log1)))
          (eggs2 (sort-eggs (log-eggs log2)))
          (diffs '())
          (add-diff! (lambda (diff)
-                      (set! diffs (cons diff diffs)))))
+                      (set! diffs (cons diff diffs))))
+         (new/missing '())
+         (add-new/missing! (lambda (new/missing-egg)
+                             (set! new/missing
+                                   (cons new/missing-egg new/missing)))))
     (for-each
      (lambda (egg)
        (let ((install-status-1 (install-status egg log1))
@@ -36,10 +44,31 @@
                                  test-status-1
                                  (test-message egg log1)
                                  test-status-2
-                                 (test-message egg log2))))))
+                                 (test-message egg log2))))
+         (unless (memq egg eggs2)
+           (add-new/missing! (make-new/missing-egg
+                              'missing
+                              egg
+                              install-status-1
+                              (install-message egg log1)
+                              test-status-1
+                              (test-message egg log1))))))
      eggs1)
-    diffs))
 
+    ;; Find eggs that disappeared
+    (for-each
+     (lambda (egg)
+       (unless (memq egg eggs1)
+         (add-new/missing! (make-new/missing-egg
+                            'new
+                            egg
+                            (install-status egg log2)
+                            (install-message egg log2)
+                            (test-status egg log2)
+                            (test-message egg log2)))))
+     eggs2)
+
+    (list diffs new/missing)))
 
 
 ;;; Diff -> HTML
@@ -127,10 +156,53 @@
         )))))
 
 
+(define (render-new/missing-eggs new/missing-eggs out-dir missing?)
+  ;; Write html files for installation and test outputs
+  (unless missing?
+    (for-each
+     (lambda (n/m)
+       (let* ((egg (new/missing-egg-egg n/m))
+              (test-status (new/missing-egg-test-status n/m))
+              (test-message (new/missing-egg-test-message n/m))
+              (install-status (new/missing-egg-install-status n/m))
+              (install-message (new/missing-egg-install-message n/m)))
+         (write-html egg 'install install-message 2 out-dir)
+         (write-html egg 'test test-message 2 out-dir)))
+     new/missing-eggs))
+
+  (zebra-table (if missing?
+                   '("Egg")
+                   '("Egg" "Install status" "Test status"))
+               (map (lambda (n/m)
+                      (let ((egg (new/missing-egg-egg n/m))
+                            (test-status (new/missing-egg-test-status n/m))
+                            (install-status (new/missing-egg-install-status n/m)))
+                        (if missing?
+                            (list (new/missing-egg-egg n/m))
+                            (list (new/missing-egg-egg n/m)
+                                  `(,(link-egg-install
+                                      egg
+                                      2
+                                      (if (and install-status (zero? install-status))
+                                          "ok"
+                                          (sprintf "fail (status=~a)" install-status))))
+                                  (if (or (not test-status) (eq? test-status -1))
+                                      "No test"
+                                      `(,(link-egg-test
+                                          egg
+                                          2
+                                          (if (zero? test-status)
+                                              "ok"
+                                              (sprintf "fail (status=~a)" test-status)))))))))
+                    new/missing-eggs)))
+
+
 (define (diff->html log-file-1 log-file-2 out-dir #!key label1 label2)
   (let* ((log1 (read-log-file log-file-1))
          (log2 (read-log-file log-file-2))
-         (diffs (salmonella-diff log1 log2)))
+         (diff (salmonella-diff log1 log2))
+         (diffs (car diff))
+         (new/missing-eggs (cadr diff)))
     (sxml-diff->html
      (page-template
       `((h1 "Salmonella diff")
@@ -173,6 +245,21 @@
                                 ""
                                 "")))))
                    diffs)))
+        ,(let ((new-eggs (filter (lambda (n/m)
+                                   (eq? 'new (new/missing-egg-status n/m)))
+                                 new/missing-eggs))
+               (missing-eggs (filter (lambda (n/m)
+                                       (eq? 'missing (new/missing-egg-status n/m)))
+                                     new/missing-eggs)))
+           (cond ((and (null? new-eggs) (null? missing-eggs))
+                  '())
+                 ((null? new-eggs)
+                  `((h2 (@ (id "missing-eggs")) "Missing eggs")
+                    ,(render-new/missing-eggs missing-eggs out-dir #t)))
+                 (else
+                  `((h2 (@ (id "new-eggs")) "New eggs")
+                    ,(render-new/missing-eggs new-eggs out-dir #f)))))
+
         (h2 (@ (id "environment-information")) "Environments information")
         (h3 (@ (id "env1")) "Environment 1")
         (pre ,(salmonella-info log1))
@@ -218,15 +305,15 @@
                    ,@(map (lambda (cell) `(td ,cell)) row)))
             rows))))
 
-(define (link-egg-test egg num)
+(define (link-egg-test egg num #!optional link-text)
   (let ((egg (symbol->string egg)))
     `(a (@ (href ,(make-pathname (list (conc "log" num) "test") egg "html")))
-        "Test output")))
+        ,(or link-text "Test output"))))
 
-(define (link-egg-install egg num)
+(define (link-egg-install egg num #!optional link-text)
   (let ((egg (symbol->string egg)))
     `(a (@ (href ,(make-pathname (list (conc "log" num) "install") egg "html")))
-        "Installation output")))
+        ,(or link-text "Installation output"))))
 
 
 ;;; Utils
