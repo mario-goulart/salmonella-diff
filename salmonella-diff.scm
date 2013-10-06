@@ -1,4 +1,8 @@
-(use srfi-1 salmonella-log-parser regex sxml-transforms)
+(module salmonella-diff ()
+
+(import chicken scheme)
+(use srfi-1 srfi-13 posix files data-structures ports)
+(use salmonella-log-parser regex sxml-transforms)
 
 (define-record diff action egg status-1 message-1 status-2 message-2)
 
@@ -377,3 +381,5 @@ EOF
     (let ((log1 (car logs))
           (log2 (cadr logs)))
       (diff->html log1 log2 out-dir label1: label1 label2: label2))))
+
+) ;; end module
