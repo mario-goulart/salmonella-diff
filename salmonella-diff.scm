@@ -340,7 +340,19 @@
   (let ((this (pathname-strip-directory (program-name))))
     (display #<#EOF
 #this [ -h | --help ]
-#this [ --out-dir=<dir> ] [ --label1=<label1> ] [ --label2=<label2> ] log1 log2
+#this [ <options> ] log1 log2
+
+<options>:
+
+--out-dir=<dir>
+  Directory where to save the HTML diff output
+
+--label1=<label>
+  Label for log 1
+
+--label2=<label>
+  Label for log 2
+
 EOF
 )
     (newline)
