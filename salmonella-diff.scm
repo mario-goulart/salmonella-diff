@@ -160,7 +160,7 @@
         )))))
 
 
-(define (render-new/missing-eggs new/missing-eggs out-dir missing?)
+(define (render-new/missing-eggs new/missing-eggs out-dir missing? report-uri1 report-uri2)
   ;; Write html files for installation and test outputs
   (unless missing?
     (for-each
@@ -187,26 +187,35 @@
                                   `(,(link-egg-install
                                       egg
                                       2
-                                      (if (and install-status (zero? install-status))
-                                          "ok"
-                                          (sprintf "fail (status=~a)" install-status))))
+                                      link-text: (if (and install-status
+                                                          (zero? install-status))
+                                                     "ok"
+                                                     (sprintf "fail (status=~a)"
+                                                              install-status))
+                                      report-uri: report-uri2))
                                   (if (or (not test-status) (eq? test-status -1))
                                       "No test"
                                       `(,(link-egg-test
                                           egg
                                           2
-                                          (if (zero? test-status)
-                                              "ok"
-                                              (sprintf "fail (status=~a)" test-status)))))))))
+                                          link-text: (if (zero? test-status)
+                                                         "ok"
+                                                         (sprintf "fail (status=~a)"
+                                                                  test-status))
+                                          report-uri: report-uri2)))))))
                     new/missing-eggs)))
 
 
-(define (diff->html log-file-1 log-file-2 out-dir #!key label1 label2)
+(define (diff->html log-file-1 log-file-2 out-dir #!key label1 label2 report-uri1 report-uri2)
   (let* ((log1 (read-log-file log-file-1))
          (log2 (read-log-file log-file-2))
          (diff (salmonella-diff log1 log2))
          (diffs (car diff))
-         (new/missing-eggs (cadr diff)))
+         (new/missing-eggs (cadr diff))
+         ;; Link mode indicates salmonella-diff will just link to
+         ;; reports' pages -- it will not write HTML pages for install
+         ;; an tests
+         (link-mode? (and report-uri1 #t)))
     (sxml-diff->html
      (page-template
       `((h1 "Salmonella diff")
@@ -223,7 +232,8 @@
               (map (lambda (d)
                      (let ((egg (diff-egg d))
                            (action (diff-action d)))
-                       (when (memq action '(install test))
+                       (when (and (memq action '(install test))
+                                  (not link-mode?))
                          (write-html egg action (diff-message-1 d) 1 out-dir)
                          (write-html egg action (diff-message-2 d) 2 out-dir))
                        (case action
@@ -232,15 +242,15 @@
                                 "Installation"
                                 (diff-status-1 d)
                                 (diff-status-2 d)
-                                (link-egg-install egg 1)
-                                (link-egg-install egg 2)))
+                                (link-egg-install egg 1 report-uri: report-uri1)
+                                (link-egg-install egg 2 report-uri: report-uri2)))
                          ((test)
                           (list egg
                                 "Test"
                                 (diff-status-1 d)
                                 (diff-status-2 d)
-                                (link-egg-test egg 1)
-                                (link-egg-test egg 2)))
+                                (link-egg-test egg 1 report-uri: report-uri1)
+                                (link-egg-test egg 2 report-uri: report-uri1)))
                          ((version)
                           (list egg
                                 "Version check"
@@ -259,10 +269,10 @@
                   '())
                  ((null? new-eggs)
                   `((h2 (@ (id "missing-eggs")) "Missing eggs")
-                    ,(render-new/missing-eggs missing-eggs out-dir #t)))
+                    ,(render-new/missing-eggs missing-eggs out-dir #t report-uri1 report-uri2)))
                  (else
                   `((h2 (@ (id "new-eggs")) "New eggs")
-                    ,(render-new/missing-eggs new-eggs out-dir #f)))))
+                    ,(render-new/missing-eggs new-eggs out-dir #f report-uri1 report-uri2)))))
 
         (h2 (@ (id "environment-information")) "Environments information")
         (h3 (@ (id "env1")) "Environment 1")
@@ -309,18 +319,31 @@
                    ,@(map (lambda (cell) `(td ,cell)) row)))
             rows))))
 
-(define (link-egg-test egg num #!optional link-text)
+(define (link-egg-test egg num #!key link-text report-uri)
   (let ((egg (symbol->string egg)))
-    `(a (@ (href ,(make-pathname (list (conc "log" num) "test") egg "html")))
+    `(a (@ (href ,(if report-uri
+                      (uri-append report-uri (make-pathname "test" egg "html"))
+                      (make-pathname (list (conc "log" num) "test") egg "html"))))
         ,(or link-text "Test output"))))
 
-(define (link-egg-install egg num #!optional link-text)
+(define (link-egg-install egg num #!key link-text report-uri)
   (let ((egg (symbol->string egg)))
-    `(a (@ (href ,(make-pathname (list (conc "log" num) "install") egg "html")))
+    `(a (@ (href ,(if report-uri
+                      (uri-append report-uri (make-pathname "install" egg "html"))
+                      (make-pathname (list (conc "log" num) "install") egg "html"))))
         ,(or link-text "Installation output"))))
 
 
 ;;; Utils
+(define (uri-append uri path)
+  (if (string-null? path)
+      uri
+      (let ((uri-no-/ (string-chomp uri "/"))
+            (path-no-/ (if (eq? (string-ref path 0) #\/)
+                           (substring path 1)
+                           path)))
+        (string-append uri-no-/ "/" path-no-/))))
+  
 (define (cmd-line-arg option args)
   ;; Returns the argument associated to the command line option OPTION
   ;; in ARGS or #f if OPTION is not found in ARGS or doesn't have any
@@ -353,6 +376,12 @@
 --label2=<label>
   Label for log 2
 
+--report-uri1=<URI>
+  Base URI to the salmonella HTML report for log1 (requires --report-uri2)
+
+--report-uri2=<URI>
+  Base URI to the salmonella HTML report for log2 (requires --report-uri1)
+
 EOF
 )
     (newline)
@@ -365,7 +394,9 @@ EOF
 (let* ((args (command-line-arguments))
        (out-dir (or (cmd-line-arg '--out-dir args) "salmonella-diff-html"))
        (label1 (cmd-line-arg '--label1 args))
-       (label2 (cmd-line-arg '--label2 args)))
+       (label2 (cmd-line-arg '--label2 args))
+       (report-uri1 (cmd-line-arg '--report-uri1 args))
+       (report-uri2 (cmd-line-arg '--report-uri2 args)))
 
   (when (or (member "--help" args)
             (member "-h" args)
@@ -377,6 +408,12 @@ EOF
 
   (when (null? args)
     (usage 1))
+
+  (when (and report-uri1 (not report-uri2))
+    (die "--report-uri1 requires --report-uri2 to be provided."))
+
+  (when (and report-uri2 (not report-uri1))
+    (die "--report-uri2 requires --report-uri1 to be provided."))
 
   (let ((logs (remove (lambda (arg)
                         (string-prefix? "--" arg))
@@ -392,6 +429,10 @@ EOF
 
     (let ((log1 (car logs))
           (log2 (cadr logs)))
-      (diff->html log1 log2 out-dir label1: label1 label2: label2))))
+      (diff->html log1 log2 out-dir
+                  label1: label1
+                  label2: label2
+                  report-uri1: report-uri1
+                  report-uri2: report-uri2))))
 
 ) ;; end module
