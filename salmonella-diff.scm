@@ -250,8 +250,8 @@
                                 (status-2 (diff-status-2 d)))
                             (list egg
                                   "Test"
-                                  status-1
-                                  status-2
+                                  (if (eq? status-1 -1) "No test" status-1)
+                                  (if (eq? status-2 -1) "No test" status-2)
                                   (link-egg-test egg status-1 1 report-uri: report-uri1)
                                   (link-egg-test egg status-2 2 report-uri: report-uri1))))
                          ((version)
