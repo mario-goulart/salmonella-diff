@@ -197,6 +197,7 @@
                                       "No test"
                                       `(,(link-egg-test
                                           egg
+                                          test-status
                                           2
                                           link-text: (if (zero? test-status)
                                                          "ok"
@@ -245,12 +246,14 @@
                                 (link-egg-install egg 1 report-uri: report-uri1)
                                 (link-egg-install egg 2 report-uri: report-uri2)))
                          ((test)
-                          (list egg
-                                "Test"
-                                (diff-status-1 d)
-                                (diff-status-2 d)
-                                (link-egg-test egg 1 report-uri: report-uri1)
-                                (link-egg-test egg 2 report-uri: report-uri1)))
+                          (let ((status-1 (diff-status-1 d))
+                                (status-2 (diff-status-2 d)))
+                            (list egg
+                                  "Test"
+                                  status-1
+                                  status-2
+                                  (link-egg-test egg status-1 1 report-uri: report-uri1)
+                                  (link-egg-test egg status-2 2 report-uri: report-uri1))))
                          ((version)
                           (list egg
                                 "Version check"
@@ -319,12 +322,14 @@
                    ,@(map (lambda (cell) `(td ,cell)) row)))
             rows))))
 
-(define (link-egg-test egg num #!key link-text report-uri)
+(define (link-egg-test egg test-status num #!key link-text report-uri)
   (let ((egg (symbol->string egg)))
-    `(a (@ (href ,(if report-uri
-                      (uri-append report-uri (make-pathname "test" egg "html"))
-                      (make-pathname (list (conc "log" num) "test") egg "html"))))
-        ,(or link-text "Test output"))))
+    (if (eq? test-status -1)
+        "No test"
+        `(a (@ (href ,(if report-uri
+                          (uri-append report-uri (make-pathname "test" egg "html"))
+                          (make-pathname (list (conc "log" num) "test") egg "html"))))
+            ,(or link-text "Test output")))))
 
 (define (link-egg-install egg num #!key link-text report-uri)
   (let ((egg (symbol->string egg)))
@@ -343,7 +348,7 @@
                            (substring path 1)
                            path)))
         (string-append uri-no-/ "/" path-no-/))))
-  
+
 (define (cmd-line-arg option args)
   ;; Returns the argument associated to the command line option OPTION
   ;; in ARGS or #f if OPTION is not found in ARGS or doesn't have any
