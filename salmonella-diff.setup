@@ -1,10 +1,18 @@
 ;;; salmonella-diff.setup -*- scheme -*-
 
+;; Compile the extension
+(compile -s -O3 -d1 -J salmonella-diff.scm)
+(compile -s -O3 -d1 salmonella-diff.import.scm)
+
 ;; Compile the application
-(compile -S -O3 -d1 salmonella-diff.scm -o salmonella-diff)
+(compile -O3 -d1 salmonella-diff-cmd.scm -o salmonella-diff)
 
-(define salmonella-diff-version "1")
+(define salmonella-diff-version "2")
 
-(install-program 'salmonella-diff
+(install-extension 'salmonella-diff
+                   '("salmonella-diff.so" "salmonella-diff.import.so")
+                   `((version ,salmonella-diff-version)))
+
+(install-program 'salmonella-diff-cmd
                  '("salmonella-diff")
                  `((version ,salmonella-diff-version)))
