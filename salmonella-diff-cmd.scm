@@ -242,17 +242,6 @@
            (div (@ (id "content"))
                 ,content)))))
 
-
-(define (zebra-table header rows)
-  `(table
-    (tr ,@(map (lambda (h) `(th ,h)) header))
-    ,(let ((odd-row #f))
-       (map (lambda (row)
-              (set! odd-row (not odd-row))
-              `(tr (@ (class ,(if odd-row "odd" "even")))
-                   ,@(map (lambda (cell) `(td ,cell)) row)))
-            rows))))
-
 (define (link-egg-test egg test-status num #!key link-text report-uri)
   (let ((egg (symbol->string egg)))
     (if (eq? test-status -1)
