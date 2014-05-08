@@ -2,7 +2,7 @@
 
 (import chicken scheme)
 (use srfi-1 srfi-13 posix files data-structures ports)
-(use salmonella-diff salmonella-log-parser salmonella-html-report regex sxml-transforms)
+(use salmonella-diff salmonella-log-parser salmonella-html-report sxml-transforms)
 
 (define (write-action-report! egg action log lognum out-dir)
   (let ((content
@@ -268,14 +268,6 @@
                            (substring path 1)
                            path)))
         (string-append uri-no-/ "/" path-no-/))))
-
-(define (cmd-line-arg option args)
-  ;; Returns the argument associated to the command line option OPTION
-  ;; in ARGS or #f if OPTION is not found in ARGS or doesn't have any
-  ;; argument.
-  (let ((val (any (cut string-match (conc option "=(.*)") <>) args)))
-    (and val (cadr val))))
-
 
 (define (die . msg)
   (with-output-to-port (current-error-port)
