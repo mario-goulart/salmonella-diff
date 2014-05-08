@@ -2,24 +2,28 @@
 
 (import chicken scheme)
 (use srfi-1 srfi-13 posix files data-structures ports)
-(use salmonella-diff salmonella-log-parser regex sxml-transforms)
+(use salmonella-diff salmonella-log-parser salmonella-html-report regex sxml-transforms)
 
-
-;;; Diff -> HTML
-(define (write-html egg action message num out-dir)
-  (sxml-diff->html
-   (page-template
-    (list (case action
-            ((install) `(h1 "Installation output for " ,egg))
-            ((test) `(h1 "Test output for " ,egg)))
-          `(pre ,message))
-    title: (conc "Test output (" num ") for " egg))
-   (make-pathname (list out-dir
-                        (conc "log" num)
-                        (symbol->string action))
-                  (symbol->string egg)
-                  "html")))
-
+(define (write-action-report! egg action log lognum out-dir)
+  (let ((content
+         (page-template
+          ((case action
+             ((install) egg-installation-report)
+             ((test) egg-test-report)
+             (else (error 'write-action-report! "invalid action" action)))
+           egg log)
+          title: (conc egg ": "
+                       (case action
+                         ((install) "installation")
+                         ((test) "test"))
+                       " report")))
+        (output-file
+         (make-pathname (list out-dir
+                              (conc "log" lognum)
+                              (symbol->string action))
+                        (symbol->string egg)
+                        "html")))
+    (sxml-diff->html content output-file)))
 
 (define (render-summary log1 log2)
   (let ((blank '(literal "&nbsp;")))
@@ -90,7 +94,7 @@
         )))))
 
 
-(define (render-new/missing-eggs new/missing-eggs out-dir missing? report-uri1 report-uri2)
+(define (render-new/missing-eggs new/missing-eggs log out-dir missing? report-uri1 report-uri2)
   ;; Write html files for installation and test outputs
   (unless missing?
     (for-each
@@ -100,8 +104,8 @@
               (test-message (new/missing-egg-test-message n/m))
               (install-status (new/missing-egg-install-status n/m))
               (install-message (new/missing-egg-install-message n/m)))
-         (write-html egg 'install install-message 2 out-dir)
-         (write-html egg 'test test-message 2 out-dir)))
+         (write-action-report! egg 'install log 2 out-dir)
+         (write-action-report! egg 'test log 2 out-dir)))
      new/missing-eggs))
 
   (zebra-table (if missing?
@@ -136,7 +140,6 @@
                                           report-uri: report-uri2)))))))
                     new/missing-eggs)))
 
-
 (define (diff->html log-file-1 log-file-2 out-dir #!key label1 label2 report-uri1 report-uri2)
   (let* ((log1 (read-log-file log-file-1))
          (log2 (read-log-file log-file-2))
@@ -165,8 +168,8 @@
                            (action (diff-action d)))
                        (when (and (memq action '(install test))
                                   (not link-mode?))
-                         (write-html egg action (diff-message-1 d) 1 out-dir)
-                         (write-html egg action (diff-message-2 d) 2 out-dir))
+                         (write-action-report! egg action log1 1 out-dir)
+                         (write-action-report! egg action log2 2 out-dir))
                        (case action
                          ((install)
                           (list egg
@@ -202,10 +205,10 @@
                   '())
                  ((null? new-eggs)
                   `((h2 (@ (id "missing-eggs")) "Missing eggs")
-                    ,(render-new/missing-eggs missing-eggs out-dir #t report-uri1 report-uri2)))
+                    ,(render-new/missing-eggs missing-eggs log1 out-dir #t report-uri1 report-uri2)))
                  (else
                   `((h2 (@ (id "new-eggs")) "New eggs")
-                    ,(render-new/missing-eggs new-eggs out-dir #f report-uri1 report-uri2)))))
+                    ,(render-new/missing-eggs new-eggs log2 out-dir #f report-uri1 report-uri2)))))
 
         (h2 (@ (id "environment-information")) "Environments information")
         (h3 (@ (id "env1")) "Environment 1")
@@ -224,8 +227,6 @@
                       . ,universal-conversion-rules*)))
       (SRV:send-reply (pre-post-order* sxml rules))))))
 
-(define page-css "http://wiki.call-cc.org/chicken.css")
-
 (define (page-template content #!key title)
   `((literal
      "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
@@ -235,7 +236,7 @@
            (meta (@ (charset "utf-8")))
            (title ,title)
            (link (@ (rel "stylesheet")
-                    (href ,page-css)
+                    (href ,(salmonella-page-css))
                     (type "text/css"))))
           (body
            (div (@ (id "content"))
