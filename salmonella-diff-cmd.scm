@@ -27,6 +27,13 @@
 --report-uri2=<URI>
   Base URI to the salmonella HTML report for log2 (requires --report-uri1)
 
+
+When --report-uri1 and --report-uri2 are provided, salmonella-diff
+will operate in "link mode".  In that mode, it won't write reports for
+actions like install and test; instead, it will link to the corresponding
+reports in the main salmonella report as pointed by the --report-uri1 and
+--report-uri2 parameters.
+
 EOF
 )
     (newline)
