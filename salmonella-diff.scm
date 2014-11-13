@@ -337,8 +337,8 @@
 
 (define (link-egg-test egg test-status num #!key link-text report-uri)
   (let ((egg (symbol->string egg)))
-    (if (eq? test-status -1)
-        "No test"
+    (if (or (not test-status) (eq? test-status -1))
+        ""
         `(a (@ (href ,(if report-uri
                           (uri-append report-uri (make-pathname "test" egg "html"))
                           (make-pathname (list (conc "log" num) "test") egg "html"))))
