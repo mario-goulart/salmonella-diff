@@ -24,7 +24,7 @@
 )
 
 (import chicken scheme)
-(use srfi-1 srfi-13 posix files data-structures ports)
+(use extras srfi-1 srfi-13 posix files data-structures ports)
 (use salmonella-log-parser salmonella-html-report sxml-transforms)
 
 (define-record diff action egg status-1 message-1 status-2 message-2)
