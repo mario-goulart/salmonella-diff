@@ -121,73 +121,148 @@
     (sxml-diff->html content output-file)))
 
 (define (render-summary log1 log2)
-  (let ((blank '(literal "&nbsp;")))
+  (let* ((blank '(literal "&nbsp;"))
+         (install-ok-1 (count-install-ok log1))
+         (install-ok-2 (count-install-ok log2))
+         (install-ok-diff (- install-ok-2 install-ok-1))
+         (install-fail-1 (count-test-fail log1))
+         (install-fail-2 (count-test-fail log2))
+         (install-fail-diff (- install-fail-2 install-fail-1))
+
+         (test-ok-1 (count-test-ok log1))
+         (test-ok-2 (count-test-ok log2))
+         (test-ok-diff (- test-ok-2 test-ok-1))
+         (test-fail-1 (count-test-fail log1))
+         (test-fail-2 (count-test-fail log2))
+         (test-fail-diff (- test-fail-2 test-fail-1))
+         (no-test-1 (count-no-test log1))
+         (no-test-2 (count-no-test log2))
+         (no-test-diff (- no-test-2 no-test-1))
+
+         (doc-1 (count-documented log1))
+         (doc-2 (count-documented log2))
+         (doc-diff (- doc-2 doc-1))
+         (undoc-1 (count-undocumented log1))
+         (undoc-2 (count-undocumented log2))
+         (undoc-diff (- undoc-2 undoc-1))
+
+         (runtime-1 (total-time log1))
+         (runtime-2 (total-time log2))
+         (runtime-diff (- runtime-2 runtime-1))
+
+         (eggs-1 (count-total-eggs log1 with-skipped?: #t))
+         (eggs-2 (count-total-eggs log2 with-skipped?: #t))
+         (eggs-diff (- eggs-2 eggs-1))
+         (not-skipped-1 (count-total-eggs log1 with-skipped?: #f))
+         (not-skipped-2 (count-total-eggs log2 with-skipped?: #f))
+         (not-skipped-diff (- not-skipped-2 not-skipped-1))
+         (skipped-1 (length (log-skipped-eggs log1)))
+         (skipped-2 (length (log-skipped-eggs log2)))
+         (skipped-diff (- skipped-2 skipped-1)))
+
+    (define (colorize good? text)
+      `(span (@ (style ,(if good?
+                            "color: blue;"
+                            "color: red;")))
+             ,text))
+
+    (define (good-if-positive n)
+      (if (zero? n)
+          n
+          (colorize (>= n 0) n)))
+
+    (define (good-if-negative n)
+      (if (zero? n)
+          n
+          (colorize (< n 0) n)))
+
     `((h2 (@ (id "summary")) "Summary")
-      (table
-       (tr (th "Installation")
-           (th "Tests")
-           (th "Documentation")
-           (th "Run time")
-           (th "Total"))
-       (tr
-        ;; Installation
-        (td ,(zebra-table
-              '("" 1 2)
-              `(("Ok"
-                 ,(count-install-ok log1)
-                 ,(count-install-ok log2))
-                ("Failed"
-                 ,(count-install-fail log1)
-                 ,(count-install-fail log2))
-                (,blank ,blank ,blank))))
+      (table (@ (border 1))
 
-        ;; Tests
-        (td ,(zebra-table
-              '("" 1 2)
-              `(("Ok"
-                 ,(count-test-ok log1)
-                 ,(count-test-ok log2))
-                ("Failed"
-                 ,(count-test-fail log1)
-                 ,(count-test-fail log2))
-                ("No test"
-                 ,(count-no-test log1)
-                 ,(count-no-test log2)))))
+             ;;;;;;;;;; Header
+             (tr
+              (th ,blank)
+              (th (@ (colspan 2)) "Installation")
+              (th (@ (colspan 3)) "Tests")
+              (th (@ (colspan 2)) "Documentation")
+              (th "Run time")
+              (th (@ (colspan 3)) "Total"))
 
-        ;; Documentation
-        (td ,(zebra-table
-              '("" 1 2)
-              `(("Documented"
-                 ,(count-documented log1)
-                 ,(count-documented log2))
-                ("Undocumented"
-                 ,(count-undocumented log1)
-                 ,(count-undocumented log2))
-                (,blank ,blank ,blank))))
+             ;;;;;;;;;; First line
+             (tr (@ (class "odd"))
+                 (td (i "Log"))
+                 ;; Installation
+                 (td (i "Ok")) (td (i "Failed"))
+                 ;; Tests
+                 (td (i "Ok")) (td (i "Failed")) (td (i "No test"))
+                 ;; Documentation
+                 (td (i "Yes")) (td (i "No"))
+                 ;; Runtime
+                 (td ,blank)
+                 ;; Total
+                 (td (i "Eggs")) (td (i "Not skipped")) (td (i "Skipped")))
 
-        ;; Run time
-        (td ,(zebra-table
-              '(1 2)
-              `((,(prettify-time (inexact->exact (total-time log1)))
-                 ,(prettify-time (inexact->exact (total-time log2))))
-                (,blank ,blank)
-                (,blank ,blank))))
+             ;;;;;;;;;; Second line (log1)
+             (tr (@ class "even")
+                 (td (b 1))
+                 ;; Installation
+                 (td ,install-ok-1)
+                 (td ,install-fail-1)
+                 ;; Tests
+                 (td ,test-ok-1)
+                 (td ,test-fail-1)
+                 (td ,no-test-1)
+                 ;; Documentation
+                 (td ,doc-1)
+                 (td ,undoc-1)
+                 ;; Runtime
+                 (td ,(prettify-time runtime-1))
+                 ;; Total
+                 (td ,eggs-1)
+                 (td ,not-skipped-1)
+                 (td ,skipped-1))
 
+             ;;;;;;;;;; Third line (log2)
+             (tr (@ class "even")
+                 (td (b 2))
+                 ;; Installation
+                 (td ,install-ok-2)
+                 (td ,install-fail-2)
+                 ;; Tests
+                 (td ,test-ok-2)
+                 (td ,test-fail-2)
+                 (td ,no-test-2)
+                 ;; Documentation
+                 (td ,doc-2)
+                 (td ,undoc-2)
+                 ;; Runtime
+                 (td ,(prettify-time runtime-2))
+                 ;; Total
+                 (td ,eggs-2)
+                 (td ,not-skipped-2)
+                 (td ,skipped-2))
 
-        ;; Total
-        (td ,(zebra-table
-              '("" 1 2)
-              `(("Total number of eggs"
-                 ,(count-total-eggs log1 with-skipped?: #t)
-                 ,(count-total-eggs log2 with-skipped?: #t))
-                ("Not skipped"
-                 ,(count-total-eggs log1 with-skipped?: #f)
-                 ,(count-total-eggs log2 with-skipped?: #f))
-                ("Skipped"
-                 ,(length (log-skipped-eggs log1))
-                 ,(length (log-skipped-eggs log2))))))
-        )))))
-
+             ;;;;;;;;;; Fourth line (diff)
+             (tr (@ class "odd")
+                 (td (i "Diff"))
+                 ;; Installation
+                 (td ,(good-if-positive install-ok-diff))
+                 (td ,(good-if-negative install-fail-diff))
+                 ;; Tests
+                 (td ,(good-if-positive test-ok-diff))
+                 (td ,(good-if-negative test-fail-diff))
+                 (td ,(good-if-negative no-test-diff))
+                 ;; Documentation
+                 (td ,(good-if-positive doc-diff))
+                 (td ,(good-if-negative undoc-diff))
+                 ;; Runtime
+                 (td ,(colorize (>= runtime-diff 0)
+                                (prettify-time runtime-diff)))
+                 ;; Total
+                 (td ,(good-if-positive eggs-diff))
+                 (td ,(good-if-positive not-skipped-diff))
+                 (td ,(good-if-negative skipped-diff)))
+             ))))
 
 (define (render-new/missing-eggs new/missing-eggs log out-dir missing? report-uri1 report-uri2)
   ;; Write html files for installation and test outputs
