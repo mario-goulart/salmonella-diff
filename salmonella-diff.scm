@@ -256,7 +256,7 @@
                  (td ,(good-if-positive doc-diff))
                  (td ,(good-if-negative undoc-diff))
                  ;; Runtime
-                 (td ,(colorize (>= runtime-diff 0)
+                 (td ,(colorize (< runtime-diff 0)
                                 (prettify-time runtime-diff)))
                  ;; Total
                  (td ,(good-if-positive eggs-diff))
