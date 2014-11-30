@@ -125,8 +125,8 @@
          (install-ok-1 (count-install-ok log1))
          (install-ok-2 (count-install-ok log2))
          (install-ok-diff (- install-ok-2 install-ok-1))
-         (install-fail-1 (count-test-fail log1))
-         (install-fail-2 (count-test-fail log2))
+         (install-fail-1 (count-install-fail log1))
+         (install-fail-2 (count-install-fail log2))
          (install-fail-diff (- install-fail-2 install-fail-1))
 
          (test-ok-1 (count-test-ok log1))
