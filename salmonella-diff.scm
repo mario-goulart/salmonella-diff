@@ -304,7 +304,7 @@
                                 egg
                                 test-status
                                 2
-                                link-text: (if (zero? test-status)
+                                link-text: (if (status-zero? test-status)
                                                "ok"
                                                (sprintf "fail (status=~a)"
                                                         test-status))
