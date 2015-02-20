@@ -167,12 +167,12 @@
              ,text))
 
     (define (good-if-positive n)
-      (if (zero? n)
+      (if (or (boolean? n) (zero? n))
           n
           (colorize (>= n 0) n)))
 
     (define (good-if-negative n)
-      (if (zero? n)
+      (if (or (boolean? n) (zero? n))
           n
           (colorize (< n 0) n)))
 
