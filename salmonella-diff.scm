@@ -293,8 +293,7 @@
                         `(,(link-egg-install
                             egg
                             2
-                            link-text: (if (and install-status
-                                                (zero? install-status))
+                            link-text: (if (status-zero? install-status)
                                            "ok"
                                            (sprintf "fail (status=~a)"
                                                     install-status))
