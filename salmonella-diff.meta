@@ -5,5 +5,7 @@
  (category egg-tools)
  (doc-from-wiki)
  (egg "salmonella-diff.egg")
- (depends sxml-transforms (salmonella "2.8"))
+ (depends sxml-transforms
+          (salmonella "2.8")
+          (salmonella-html-report "1.7"))
  )
