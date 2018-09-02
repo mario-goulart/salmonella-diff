@@ -1,0 +1,8 @@
+salmonella-diff-cmd
+salmonella-diff.build.sh
+salmonella-diff.import.scm
+salmonella-diff.import.so
+salmonella-diff.install.sh
+salmonella-diff.link
+salmonella-diff.so
+salmonella-diff.static.o
