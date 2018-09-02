@@ -1,8 +1,22 @@
 (module salmonella-diff-cmd ()
 
-(import chicken scheme)
-(use srfi-1 srfi-13 posix files data-structures ports)
-(use salmonella-diff salmonella-html-report)
+(import scheme)
+(cond-expand
+  (chicken-4
+   (import chicken)
+   (use srfi-1 srfi-13 posix files data-structures ports)
+   (use salmonella-diff salmonella-html-report))
+  (chicken-5
+   (import (chicken base)
+           (chicken file)
+           (chicken pathname)
+           (chicken process-context))
+   (import salmonella-diff
+           salmonella-html-report
+           srfi-1
+           srfi-13))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define (usage #!optional exit-code)
   (let ((this (pathname-strip-directory (program-name))))

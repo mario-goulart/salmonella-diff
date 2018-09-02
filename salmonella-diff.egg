@@ -1,0 +1,17 @@
+;;; salmonella-diff.egg -*- scheme -*-
+
+((synopsis "A tool to diff salmonella log files")
+ (author "Mario Domenech Goulart")
+ (license "BSD")
+ (category egg-tools)
+ (dependencies salmonella
+               salmonella-html-report
+               srfi-1
+               srfi-13
+               sxml-transforms)
+ (component-options
+  (csc-options "-O3" "-d1"))
+ (components (extension salmonella-diff)
+             (program salmonella-diff-cmd
+                      (install-name salmonella-diff)
+                      (component-dependencies salmonella-diff))))

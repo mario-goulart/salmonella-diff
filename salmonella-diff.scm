@@ -25,9 +25,25 @@
    sxml-diff->html
  )
 
-(import chicken scheme)
-(use extras srfi-1 srfi-13 posix files data-structures ports)
-(use salmonella-log-parser salmonella-html-report sxml-transforms)
+(import scheme)
+(cond-expand
+  (chicken-4
+   (import chicken)
+   (use extras srfi-1 srfi-13 posix files data-structures ports)
+   (use salmonella-log-parser salmonella-html-report sxml-transforms))
+  (chicken-5
+   (import (chicken base)
+           (chicken format)
+           (chicken pathname)
+           (chicken port)
+           (chicken string))
+   (import salmonella-log-parser
+           salmonella-html-report
+           srfi-1
+           srfi-13
+           sxml-transforms))
+  (else
+   (error "Unsupported CHICKEN version.")))
 
 (define-record diff action egg status-1 message-1 status-2 message-2)
 
