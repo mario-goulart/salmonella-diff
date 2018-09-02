@@ -1,11 +1,8 @@
 ;;;; -*- scheme -*-
 ((synopsis "A tool to diff salmonella log files")
- (author "<a href=\"http://wiki.call-cc.org/users/mario-domenech-goulart\">Mario Domenech Goulart</a>")
+ (author "Mario Domenech Goulart")
  (license "BSD")
  (category egg-tools)
- (doc-from-wiki)
- (egg "salmonella-diff.egg")
  (depends sxml-transforms
           (salmonella "2.8")
-          (salmonella-html-report "1.7"))
- )
+          (salmonella-html-report "1.7")))
