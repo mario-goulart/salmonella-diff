@@ -7,7 +7,7 @@
 ;; Compile the application
 (compile -O3 -d1 salmonella-diff-cmd.scm -o salmonella-diff)
 
-(define salmonella-diff-version "1.1")
+(define salmonella-diff-version "1.1.0")
 
 (install-extension 'salmonella-diff
                    '("salmonella-diff.so" "salmonella-diff.import.so")
