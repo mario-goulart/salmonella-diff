@@ -31,7 +31,7 @@
    (import chicken)
    (use extras srfi-1 srfi-13 posix files data-structures ports)
    (use salmonella-log-parser salmonella-html-report sxml-transforms))
-  (chicken-5
+  ((or chicken-5 chicken-6)
    (import (chicken base)
            (chicken format)
            (chicken pathname)
